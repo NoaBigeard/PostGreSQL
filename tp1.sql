@@ -10,7 +10,6 @@ CREATE TABLE utilisateurs (
     CONSTRAINT email_format CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
 );
 
--- Index pour recherche rapide
 CREATE INDEX idx_utilisateurs_email ON utilisateurs(email);
 CREATE INDEX idx_utilisateurs_actif ON utilisateurs(actif);
 
@@ -30,7 +29,6 @@ CREATE TABLE permissions (
     UNIQUE (ressource, action)
 );
 
--- Un utilisateur peut avoir plusieurs rôles
 CREATE TABLE utilisateur_roles (
     utilisateur_id INT NOT NULL,
     role_id INT NOT NULL,
@@ -40,7 +38,6 @@ CREATE TABLE utilisateur_roles (
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
--- Un rôle peut avoir plusieurs permissions
 CREATE TABLE role_permissions (
     role_id INT NOT NULL,
     permission_id INT NOT NULL,
@@ -72,13 +69,11 @@ CREATE TABLE logs_connexion (
 );
 
 
--- Insérer des rôles
 INSERT INTO roles (nom, description) VALUES
     ('admin', 'Administrateur avec tous les droits'),
     ('moderator', 'Modérateur de contenu'),
     ('user', 'Utilisateur standard');
 
--- Insérer des permissions
 INSERT INTO permissions (nom, ressource, action, description) VALUES
     ('read_users', 'users', 'read', 'Lire les utilisateurs'),
     ('write_users', 'users', 'write', 'Créer/modifier des utilisateurs'),
@@ -86,34 +81,26 @@ INSERT INTO permissions (nom, ressource, action, description) VALUES
     ('read_posts', 'posts', 'read', 'Lire les posts'),
     ('write_posts', 'posts', 'write', 'Créer/modifier des posts'),
     ('delete_posts', 'posts', 'delete', 'Supprimer des posts');
-    -- À VOUS: Associez les permissions aux rôles
-    -- Admin: toutes les permissions
-    -- Moderator: read_users, read_posts, write_posts, delete_posts
-    -- User: read_users, read_posts, write_posts
+   
 
 INSERT INTO role_permissions (role_id, permission_id) VALUES
-    -- Admin: toutes les permissions
     ((SELECT id FROM roles WHERE nom = 'admin'), (SELECT id FROM permissions WHERE nom = 'read_users')),
     ((SELECT id FROM roles WHERE nom = 'admin'), (SELECT id FROM permissions WHERE nom = 'write_users')),
     ((SELECT id FROM roles WHERE nom = 'admin'), (SELECT id FROM permissions WHERE nom = 'delete_users')),
     ((SELECT id FROM roles WHERE nom = 'admin'), (SELECT id FROM permissions WHERE nom = 'read_posts')),
     ((SELECT id FROM roles WHERE nom = 'admin'), (SELECT id FROM permissions WHERE nom = 'write_posts')),
     ((SELECT id FROM roles WHERE nom = 'admin'), (SELECT id FROM permissions WHERE nom = 'delete_posts')),
-    -- Moderator: read_users, read_posts, write_posts, delete_posts
+
     ((SELECT id FROM roles WHERE nom = 'moderator'), (SELECT id FROM permissions WHERE nom = 'read_users')),
     ((SELECT id FROM roles WHERE nom = 'moderator'), (SELECT id FROM permissions WHERE nom = 'read_posts')),
     ((SELECT id FROM roles WHERE nom = 'moderator'), (SELECT id FROM permissions WHERE nom = 'write_posts')),
     ((SELECT id FROM roles WHERE nom = 'moderator'), (SELECT id FROM permissions WHERE nom = 'delete_posts')),
-    -- User: read_users, read_posts, write_posts
+
     ((SELECT id FROM roles WHERE nom = 'user'), (SELECT id FROM permissions WHERE nom = 'read_users')),
     ((SELECT id FROM roles WHERE nom = 'user'), (SELECT id FROM permissions WHERE nom = 'read_posts')),
     ((SELECT id FROM roles WHERE nom = 'user'), (SELECT id FROM permissions WHERE nom = 'write_posts'));
 
--- ============================================
--- FONCTIONS STOCKÉES
--- ============================================
 
--- Fonction pour vérifier si un utilisateur a une permission
 CREATE OR REPLACE FUNCTION utilisateur_a_permission(
     p_utilisateur_id INT,
     p_ressource VARCHAR,
@@ -135,7 +122,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fonction pour valider les tokens
 CREATE OR REPLACE FUNCTION est_token_valide(p_token VARCHAR)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -151,11 +137,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ============================================
--- REQUÊTES SQL AVANCÉES
--- ============================================
-
--- Task 7: Récupérer un utilisateur avec tous ses rôles
 SELECT
     u.id,
     u.email,
@@ -170,7 +151,6 @@ LEFT JOIN roles r ON ur.role_id = r.id
 WHERE u.id = 1
 GROUP BY u.id, u.email, u.nom, u.prenom, u.actif, u.date_creation;
 
--- Task 8: Récupérer toutes les permissions d'un utilisateur
 SELECT DISTINCT
     u.id AS utilisateur_id,
     u.email,
@@ -184,7 +164,6 @@ INNER JOIN permissions p ON rp.permission_id = p.id
 WHERE u.id = 1
 ORDER BY p.ressource, p.action;
 
--- Task 9: Compter le nombre d'utilisateurs par rôle
 SELECT
     r.nom AS role,
     COUNT(DISTINCT ur.utilisateur_id) AS nombre_utilisateurs
@@ -193,7 +172,6 @@ LEFT JOIN utilisateur_roles ur ON r.id = ur.role_id
 GROUP BY r.id, r.nom
 ORDER BY nombre_utilisateurs DESC;
 
--- Task 10: Trouver les utilisateurs qui ont le rôle 'admin' ET 'moderator'
 SELECT
     u.id,
     u.email,
@@ -205,7 +183,6 @@ WHERE r.nom IN ('admin', 'moderator')
 GROUP BY u.id, u.email
 HAVING COUNT(DISTINCT r.nom) = 2;
 
--- Task 11: Compter les tentatives de connexion échouées des 7 derniers jours
 SELECT
     DATE(date_heure) AS jour,
     COUNT(*) AS tentatives_echouees

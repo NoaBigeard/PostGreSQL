@@ -3,7 +3,6 @@ const router = express.Router();
 const pool = require('../database/db');
 const { requireAuth, requirePermission } = require('../middleware/auth');
 
-// GET /api/users - Liste des utilisateurs avec pagination
 router.get('/',
     requireAuth,
     requirePermission('users', 'read'),
@@ -13,11 +12,9 @@ router.get('/',
         const offset = (page - 1) * limit;
 
         try {
-            // 1. Compter le total d'utilisateurs
             const countResult = await pool.query('SELECT COUNT(*) FROM utilisateurs');
             const total = parseInt(countResult.rows[0].count);
 
-            // 2. Récupérer les utilisateurs avec leurs rôles
             const usersResult = await pool.query(
                 `SELECT 
                     u.id,
@@ -53,7 +50,6 @@ router.get('/',
     }
 );
 
-// GET /api/users/:id - Détails d'un utilisateur
 router.get('/:id',
     requireAuth,
     requirePermission('users', 'read'),
@@ -92,7 +88,6 @@ router.get('/:id',
     }
 );
 
-// PUT /api/users/:id - Mettre à jour un utilisateur
 router.put('/:id',
     requireAuth,
     requirePermission('users', 'write'),
@@ -125,14 +120,12 @@ router.put('/:id',
     }
 );
 
-// DELETE /api/users/:id - Supprimer un utilisateur
 router.delete('/:id',
     requireAuth,
     requirePermission('users', 'delete'),
     async (req, res) => {
         const { id } = req.params;
 
-        // Empêcher l'auto-suppression
         if (parseInt(id) === req.user.utilisateur_id) {
             return res.status(400).json({
                 error: 'Vous ne pouvez pas supprimer votre propre compte'
@@ -161,14 +154,12 @@ router.delete('/:id',
     }
 );
 
-// GET /api/users/:id/permissions - Permissions d'un utilisateur
 router.get('/:id/permissions',
     requireAuth,
     async (req, res) => {
         const { id } = req.params;
 
         try {
-            // Récupérer toutes les permissions de l'utilisateur
             const result = await pool.query(
                 `SELECT DISTINCT 
                     p.nom, 
